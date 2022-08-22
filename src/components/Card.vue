@@ -6,9 +6,9 @@
     </h3>
     <div class="labels">
       <LabelVue
-        v-for="type in types"
-        :key="type.type.name"
-        :type="type.type.name"
+        v-for="typeItem in types"
+        :key="typeItem.type.name"
+        :type="typeItem.type.name"
       />
     </div>
   </router-link>
@@ -30,6 +30,8 @@ export default {
 <style scoped>
 .pokemon {
   cursor: pointer;
+  display: block;
+  padding: 10px 5px;
 }
 .image {
   padding-top: 100%;
