@@ -4,7 +4,8 @@ const store = createStore({
   state: {
     API: {
       BASE_URL: "https://pokeapi.co/api/v2/",
-      POKEMON: "pokemon",
+      POKEMON: "pokemon/",
+      SPECIES: "pokemon-species/",
       suffix: "?limit=30",
       img: (id) =>
         `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
@@ -13,7 +14,6 @@ const store = createStore({
     },
     nextPage: "",
     pokemons: [],
-    currentPokemon: {},
   },
   mutations: {
     setPokemon(state, pokemons) {

@@ -1,23 +1,54 @@
 <script>
 import LabelVue from "../components/Label.vue";
+import Tag from "../components/Tag.vue";
+import Evolution from "../components/Evolution.vue";
 export default {
+  components: { LabelVue, Tag, Evolution },
+  data() {
+    return {
+      SPECIES: {},
+      EVOLUTION: {},
+      pokemon: {},
+    };
+  },
   computed: {
     pokemonName() {
       return this.$route.params.id;
     },
-    pokemon() {
-      return this.$store.getters.pokemonDetail(this.pokemonName);
-    },
+    // pokemon() {
+    //   return this.$store.getters.pokemonDetail(this.pokemonName);
+    // },
     pkmIMG() {
       return this.$store.getters.pkmIMG;
     },
   },
-  components: { LabelVue },
+  methods: {
+    getPokemonEntry: async function (URL) {
+      const response = await fetch(URL);
+      return await response.json();
+    },
+  },
+  async created() {
+    const API = this.$store.getters.pokeAPI;
+    // GET POKEMON DETAIL
+    const POKEMON = await this.getPokemonEntry(
+      API.BASE_URL + API.POKEMON + this.pokemonName
+    );
+    this.pokemon = POKEMON;
+    // GET SPECIES
+    const SPECIES = await this.getPokemonEntry(this.pokemon.species.url);
+    this.SPECIES = SPECIES;
+    // GET EVOLUTION CHAIN
+    const EVOLUTION = await this.getPokemonEntry(
+      this.SPECIES.evolution_chain.url
+    );
+    this.EVOLUTION = EVOLUTION;
+  },
 };
 </script>
 
 <template>
-  <div class="container" v-if="pokemon">
+  <div class="container" v-if="pokemon.name">
     <div class="wrapper">
       <div class="col-full">
         <div
@@ -27,6 +58,9 @@ export default {
         <h2 class="name">
           {{ pokemon.name }}
         </h2>
+        <p v-if="SPECIES.flavor_text_entries">
+          {{ SPECIES.flavor_text_entries[0].flavor_text }}
+        </p>
         <div class="labels">
           <LabelVue
             v-for="typeItem in pokemon.types"
@@ -60,13 +94,17 @@ export default {
         <div class="stats">
           <h3 class="label">Stats</h3>
           <div class="detail__wrap">
-            <div v-for="stat in pokemon.stats" :key="stat.base_stat">
-              {{ stat.base_stat }}
-            </div>
+            <Tag
+              v-for="stat in pokemon.stats"
+              :key="stat.base_stat"
+              :label="stat.stat.name"
+              :detail="stat.base_stat"
+            />
           </div>
         </div>
         <div class="evolution">
           <h3 class="label">Evolution</h3>
+          <Evolution v-if="EVOLUTION.chain" :chain="EVOLUTION.chain" />
         </div>
       </div>
     </div>
@@ -81,8 +119,8 @@ export default {
   width: 100%;
 }
 .image {
-  width: 100px;
-  height: 100px;
+  width: 200px;
+  height: 200px;
   margin: auto;
   background-size: cover;
 }

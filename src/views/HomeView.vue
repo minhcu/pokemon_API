@@ -21,6 +21,7 @@ export default {
     <div class="wrapper">
       <div class="col" v-for="pokemon in pokemons" :key="pokemon.name">
         <Card
+          :id="pokemon.id"
           :name="pokemon.name"
           :image="pkmIMG(pokemon.id)"
           :types="pokemon.types"

@@ -1,5 +1,6 @@
 <template>
   <router-link class="pokemon" :to="name">
+    <div class="id">#{{ id }}</div>
     <div class="image" :style="`background-image:url('${image}')`"></div>
     <h3 class="title">
       {{ name }}
@@ -19,6 +20,7 @@ import LabelVue from "./Label.vue";
 export default {
   name: "TheCard",
   props: {
+    id: Number,
     image: String,
     name: String,
     types: Array,
@@ -32,6 +34,10 @@ export default {
   cursor: pointer;
   display: block;
   padding: 10px 5px;
+}
+.id {
+  text-align: center;
+  color: var(--vt-c-indigo);
 }
 .image {
   padding-top: 100%;
