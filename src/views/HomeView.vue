@@ -1,41 +1,56 @@
 <script>
 import Card from "../components/Card.vue";
 import API_CONFIG from "../api";
-import callAPI from "../composable";
-
+import { reactive, toRefs, computed } from "vue";
 export default {
-  data() {
+  name: "HomeView",
+  setup() {
+    const URL = API_CONFIG.pokeListURL(0, 898);
+    const state = reactive({
+      pokemons: [],
+      searchQuery: "",
+      filteredPokemons: computed(() => handleSearch()),
+    });
+    fetch(URL)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data);
+        state.pokemons = data.results;
+      });
+
+    function handleSearch() {
+      const query = state.searchQuery;
+      return state.pokemons.filter((pokemon) => pokemon.name.includes(query));
+    }
     return {
-      pokemonList: [],
-      limit: 898,
+      ...toRefs(state),
     };
   },
   components: {
     Card,
-  },
-  async created() {
-    const URL = API_CONFIG.BASE_URL + API_CONFIG.pokeListURL(0, this.limit);
-    const { data } = await callAPI(URL);
-    this.pokemonList = data.value.results;
   },
 };
 </script>
 
 <template>
   <div class="container">
-    <!-- <div class="wrapper">
+    <div class="wrapper">
       <div class="search__wrap">
         <input
           class="search"
-          @input="handleSearch"
           type="text"
           v-model="searchQuery"
           placeholder="Search some Pokemon..."
         />
       </div>
-    </div> -->
-    <div class="wrapper">
-      <div class="col" v-for="pokemon in pokemonList" :key="pokemon.name">
+    </div>
+    <div class="wrapper" v-if="searchQuery">
+      <div class="col" v-for="pokemon in filteredPokemons" :key="pokemon.name">
+        <Card :name="pokemon.name" :URL="pokemon.url" />
+      </div>
+    </div>
+    <div class="wrapper" v-else>
+      <div class="col" v-for="pokemon in pokemons" :key="pokemon.name">
         <Card :name="pokemon.name" :URL="pokemon.url" />
       </div>
     </div>
