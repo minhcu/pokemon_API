@@ -9,9 +9,44 @@ export default {
     pkmIMG() {
       return this.$store.getters.pkmIMG;
     },
+    nextPageAPI() {
+      return this.$store.getters.nextPage;
+    },
   },
   components: {
     Card,
+  },
+  data() {
+    return {
+      API: this.$store.getters.pokeAPI,
+    };
+  },
+  methods: {
+    handleLimit: async function () {
+      const result = await this.getPokemonList(this.nextPageAPI);
+      await this.getPokemonsDetail(result);
+    },
+    getPokemonList: async function (URL) {
+      const response = await fetch(URL);
+      const result = await response.json();
+      this.$store.dispatch("nextPageAPI", result.next);
+      return result.results;
+    },
+    getPokemonsDetail: async function (pokemonList) {
+      const promiseArray = pokemonList.map(async (pokemon) => {
+        const response = await fetch(pokemon.url);
+        return await response.json();
+      });
+      const pokemonsDetail = await Promise.all(promiseArray);
+      this.$store.dispatch("getPokemon", pokemonsDetail);
+      return;
+    },
+  },
+  async created() {
+    const result = await this.getPokemonList(
+      this.API.BASE_URL + this.API.POKEMON + this.API.suffix
+    );
+    await this.getPokemonsDetail(result);
   },
 };
 </script>
@@ -26,6 +61,11 @@ export default {
           :image="pkmIMG(pokemon.id)"
           :types="pokemon.types"
         />
+      </div>
+    </div>
+    <div class="wrapper">
+      <div class="col-full">
+        <button class="btn" @click="handleLimit">Load More</button>
       </div>
     </div>
   </div>
@@ -59,5 +99,22 @@ export default {
   box-shadow: 0 5px 11px 0 rgba(0, 0, 0, 0.18), 0 4px 15px 0 rgba(0, 0, 0, 0.15);
   -webkit-transition: box-shadow 0.4s ease-out;
   transition: box-shadow 0.4s ease-out;
+}
+
+.btn {
+  height: 40px;
+  padding: 6px 15px;
+  margin: 80px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  color: #ffffff;
+  background-color: #ff4d4f;
+}
+.btn:hover {
+  background-color: #ff7875;
+}
+.btn:active {
+  background-color: #d9363e;
 }
 </style>

@@ -17,7 +17,7 @@ const store = createStore({
   },
   mutations: {
     setPokemon(state, pokemons) {
-      state.pokemons = pokemons;
+      state.pokemons = [...state.pokemons, ...pokemons];
     },
     setNextPageAPI(state, URL) {
       state.nextPage = URL;
@@ -41,14 +41,11 @@ const store = createStore({
     IsValid(state) {
       return state.pokemons.length;
     },
-    pokemonDetail: (state) => (name) => {
-      return state.pokemons.find((pokemon) => pokemon.name === name);
-    },
     pkmIMG: (state) => {
       return state.API.img;
     },
-    pkmGIF: (state) => {
-      return state.API.gif;
+    nextPage: (state) => {
+      return state.nextPage;
     },
   },
 });

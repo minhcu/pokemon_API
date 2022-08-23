@@ -13,47 +13,33 @@ export default {
     },
   },
   computed: {
-    isArray() {
-      return this.chain.constructor.name === "Array" ? true : false;
-    },
     hasChild() {
-      return this.chain.evolves_to.length > 0 ? true : false;
+      const { evolves_to } = this.chain;
+      return evolves_to.length > 0;
     },
     ID() {
-      if (this.isArray) {
-        return this.chain.map(
-          (form) => this.removeHttp(form.species.url).split("/")[4]
-        );
-      } else {
-        const URL = this.chain.species.url;
-        return this.removeHttp(URL).split("/")[4];
-      }
+      const URL = this.chain.species.url;
+      return this.removeHttp(URL).split("/")[4];
     },
   },
 };
 </script>
 
 <template>
-  <!-- Multiple Evolution -->
-  <div v-if="isArray">
-    <div
-      class="form divider"
-      v-for="(chain, index) in chain"
-      :key="chain.species.name"
-    >
-      <h4 class="name">{{ chain.species.name }}</h4>
-      <img :src="pkmIMG(this.ID[index])" :alt="chain.species.name" />
-    </div>
-    <!-- <Evolution v-if="hasChild" :chain="chain.evolves_to" /> -->
-  </div>
   <!-- Single Evolution -->
-  <div class="evolution" v-else>
+  <div class="evolution">
     <div class="form divider">
       <h4 class="name">{{ chain.species.name }}</h4>
       <img :src="pkmIMG(this.ID)" :alt="chain.species.name" />
     </div>
-    <div class="divider">-></div>
-    <Evolution v-if="hasChild" :chain="chain.evolves_to" />
+    <div class="divider" v-if="hasChild">></div>
+    <div v-if="hasChild">
+      <Evolution
+        v-for="chain in chain.evolves_to"
+        :key="chain"
+        :chain="chain"
+      />
+    </div>
   </div>
 </template>
 
@@ -66,8 +52,10 @@ export default {
 .divider {
   align-items: center;
   font-weight: 700;
+  margin-right: 5px;
 }
 .name {
+  font-weight: 600;
   text-align: center;
   text-transform: capitalize;
 }

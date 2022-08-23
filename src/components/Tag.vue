@@ -6,7 +6,6 @@
     <div class="tag__detail">
       {{ detail }}
     </div>
-    <router-link class="btn" to="/">&lt; Back</router-link>
   </div>
 </template>
 
@@ -65,14 +64,6 @@ export default {
 }
 .tag__detail {
   text-align: center;
-}
-.btn {
-  position: fixed;
-  top: 5%;
-  left: 10%;
-  border-radius: 30px;
-  padding: 5px 10px;
-  box-shadow: rgba(99, 99, 99, 0.1) 0px 2px 6px 0px;
 }
 .HP {
   background-color: #df2140;
