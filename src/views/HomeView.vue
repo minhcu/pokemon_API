@@ -1,79 +1,55 @@
 <script>
 import Card from "../components/Card.vue";
+import API_CONFIG from "../api";
+import callAPI from "../composable";
 
 export default {
-  computed: {
-    pokemons() {
-      return this.$store.getters.pokeLIST;
-    },
-    pkmIMG() {
-      return this.$store.getters.pkmIMG;
-    },
-    nextPageAPI() {
-      return this.$store.getters.nextPage;
-    },
+  data() {
+    return {
+      pokemonList: [],
+      limit: 898,
+    };
   },
   components: {
     Card,
   },
-  data() {
-    return {
-      API: this.$store.getters.pokeAPI,
-    };
-  },
-  methods: {
-    handleLimit: async function () {
-      const result = await this.getPokemonList(this.nextPageAPI);
-      await this.getPokemonsDetail(result);
-    },
-    getPokemonList: async function (URL) {
-      const response = await fetch(URL);
-      const result = await response.json();
-      this.$store.dispatch("nextPageAPI", result.next);
-      return result.results;
-    },
-    getPokemonsDetail: async function (pokemonList) {
-      const promiseArray = pokemonList.map(async (pokemon) => {
-        const response = await fetch(pokemon.url);
-        return await response.json();
-      });
-      const pokemonsDetail = await Promise.all(promiseArray);
-      this.$store.dispatch("getPokemon", pokemonsDetail);
-      return;
-    },
-  },
   async created() {
-    const result = await this.getPokemonList(
-      this.API.BASE_URL + this.API.POKEMON + this.API.suffix
-    );
-    await this.getPokemonsDetail(result);
+    const URL = API_CONFIG.BASE_URL + API_CONFIG.pokeListURL(0, this.limit);
+    const { data } = await callAPI(URL);
+    this.pokemonList = data.value.results;
   },
 };
 </script>
 
 <template>
-  <div class="container" v-if="pokemons.length !== 0">
-    <div class="wrapper">
-      <div class="col" v-for="pokemon in pokemons" :key="pokemon.name">
-        <Card
-          :id="pokemon.id"
-          :name="pokemon.name"
-          :image="pkmIMG(pokemon.id)"
-          :types="pokemon.types"
+  <div class="container">
+    <!-- <div class="wrapper">
+      <div class="search__wrap">
+        <input
+          class="search"
+          @input="handleSearch"
+          type="text"
+          v-model="searchQuery"
+          placeholder="Search some Pokemon..."
         />
       </div>
-    </div>
+    </div> -->
     <div class="wrapper">
+      <div class="col" v-for="pokemon in pokemonList" :key="pokemon.name">
+        <Card :name="pokemon.name" :URL="pokemon.url" />
+      </div>
+    </div>
+    <!-- <div class="wrapper">
       <div class="col-full">
         <button class="btn" @click="handleLimit">Load More</button>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
 <style>
 .container {
-  width: 1200px;
+  max-width: 1200px;
   margin: 50px auto;
 }
 .wrapper {
@@ -81,9 +57,8 @@ export default {
   flex-wrap: wrap;
   justify-content: space-around;
 }
-
 .col {
-  --width: 16.66%;
+  --width: 50%;
   --offset: 10px;
   max-width: calc(var(--width) - var(--offset));
   flex-basis: calc(var(--width) - var(--offset));
@@ -101,7 +76,25 @@ export default {
   transition: box-shadow 0.4s ease-out;
 }
 
+.search__wrap {
+  max-width: 500px;
+  width: 100%;
+  margin: 0 15px;
+}
+
+.search {
+  width: 100%;
+  padding: 20px;
+  border: none;
+  border-radius: 30px;
+  outline: none;
+  box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+  margin-bottom: 50px;
+  font-size: 16px;
+}
+
 .btn {
+  cursor: pointer;
   height: 40px;
   padding: 6px 15px;
   margin: 80px;
@@ -116,5 +109,26 @@ export default {
 }
 .btn:active {
   background-color: #d9363e;
+}
+
+@media (min-width: 768px) {
+  .col {
+    --width: 33.33%;
+    --offset: 10px;
+  }
+}
+
+@media (min-width: 960px) {
+  .col {
+    --width: 25%;
+    --offset: 10px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .col {
+    --width: 16.66%;
+    --offset: 10px;
+  }
 }
 </style>

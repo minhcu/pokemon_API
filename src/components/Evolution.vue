@@ -28,7 +28,7 @@ export default {
 <template>
   <!-- Single Evolution -->
   <div class="evolution">
-    <div class="form divider">
+    <div class="form">
       <h4 class="name">{{ chain.species.name }}</h4>
       <img :src="pkmIMG(this.ID)" :alt="chain.species.name" />
     </div>
@@ -44,19 +44,31 @@ export default {
 </template>
 
 <style scoped>
+.evolution {
+  flex-direction: column;
+}
 .evolution,
-.divider {
+.divider,
+.form {
   display: flex;
   justify-content: space-around;
 }
 .divider {
   align-items: center;
   font-weight: 700;
-  margin-right: 5px;
+  margin-right: 10px;
+}
+.form {
+  align-items: center;
 }
 .name {
   font-weight: 600;
   text-align: center;
   text-transform: capitalize;
+}
+@media (min-width: 768px) {
+  .evolution {
+    flex-direction: row;
+  }
 }
 </style>

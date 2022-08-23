@@ -1,6 +1,4 @@
-<script>
-export default {};
-</script>
+<script></script>
 
 <template>
   <RouterView />
