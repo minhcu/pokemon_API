@@ -1,7 +1,7 @@
 <script>
 import Card from "../components/Card.vue";
 import API_CONFIG from "../api";
-import { reactive, toRefs, computed } from "vue";
+import { reactive, toRefs, computed, ref } from "vue";
 export default {
   name: "HomeView",
   setup() {
@@ -9,21 +9,33 @@ export default {
     const state = reactive({
       pokemons: [],
       searchQuery: "",
+      limit: 30,
       filteredPokemons: computed(() => handleSearch()),
+      limitedPokemons: computed(() => state.pokemons.slice(0, state.limit)),
     });
+    const pending = ref(true);
+    const error = ref(null);
     fetch(URL)
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
         state.pokemons = data.results;
       });
 
     function handleSearch() {
       const query = state.searchQuery;
-      return state.pokemons.filter((pokemon) => pokemon.name.includes(query));
+      if (query) {
+        return state.pokemons.filter((pokemon) => pokemon.name.includes(query));
+      }
     }
+    const handleLimit = function () {
+      state.limit += 30;
+      return;
+    };
     return {
       ...toRefs(state),
+      handleLimit,
+      pending,
+      error,
     };
   },
   components: {
@@ -33,7 +45,10 @@ export default {
 </script>
 
 <template>
-  <div class="container">
+  <div v-if="error">
+    {{ error }}
+  </div>
+  <div class="container" v-else-if="pokemons.length > 0">
     <div class="wrapper">
       <div class="search__wrap">
         <input
@@ -50,16 +65,17 @@ export default {
       </div>
     </div>
     <div class="wrapper" v-else>
-      <div class="col" v-for="pokemon in pokemons" :key="pokemon.name">
+      <div class="col" v-for="pokemon in limitedPokemons" :key="pokemon.name">
         <Card :name="pokemon.name" :URL="pokemon.url" />
       </div>
     </div>
-    <!-- <div class="wrapper">
+    <div class="wrapper">
       <div class="col-full">
         <button class="btn" @click="handleLimit">Load More</button>
       </div>
-    </div> -->
+    </div>
   </div>
+  <div v-else class="loading">Loading</div>
 </template>
 
 <style>

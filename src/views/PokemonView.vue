@@ -2,7 +2,7 @@
 import LabelVue from "../components/Label.vue";
 import Tag from "../components/Tag.vue";
 import Evolution from "../components/Evolution.vue";
-import { reactive, toRefs } from "vue";
+import { reactive, ref, toRefs } from "vue";
 import { useRoute } from "vue-router";
 import API_CONFIG from "../api";
 
@@ -18,13 +18,16 @@ export default {
     const pokemonID = useRoute().params.id;
     state.image = API_CONFIG.pokeIMG(pokemonID);
 
+    const pending = ref(true);
+    const error = ref(null);
     // Get pokemon detail
     const pokemonDetail = API_CONFIG.pokemon(pokemonID);
     fetch(pokemonDetail)
       .then((res) => res.json())
       .then((data) => {
         state.pokemon = data;
-      });
+      })
+      .catch((e) => (error.value = e));
 
     //Get pokemon species
     const pokemonSpieces = API_CONFIG.species(pokemonID);
@@ -32,41 +35,36 @@ export default {
       .then((res) => res.json())
       .then((data) => {
         state.species = data;
-      });
+        const pokemonEvolChain = state.species.evolution_chain.url;
+        fetch(pokemonEvolChain)
+          .then((res) => res.json())
+          .then((data) => {
+            state.evolChain = data;
+          });
+      })
+      .catch((e) => (error.value = e))
+      .finally(() => (pending.value = false));
 
     // Get evolution chain
-    const pokemonEvolChain = API_CONFIG.evolution(pokemonID);
-    fetch(pokemonEvolChain)
-      .then((res) => res.json())
-      .then((data) => {
-        state.evolChain = data;
-      });
 
     const engEntry = (entries) => {
       const entry = entries.find((entry) => entry.language.name === "en");
       return entry.flavor_text;
     };
     const spaceCase = (string) => string.split("-").join(" ");
-
     return {
       ...toRefs(state),
       engEntry,
       spaceCase,
+      pending,
+      error,
     };
-  },
-  methods: {
-    spaceCase(string) {
-      return string.split("-").join(" ");
-    },
-    engEntry(entries) {
-      const entry = entries.find((entry) => entry.language.name === "en");
-      return entry.flavor_text;
-    },
   },
 };
 </script>
 
 <template>
+  <div v-if="error">{{ error }}</div>
   <div class="container" v-if="pokemon.name">
     <router-link class="back-btn" to="/">&lt; Back</router-link>
     <div class="wrapper">
@@ -98,7 +96,10 @@ export default {
         <div class="ability">
           <h3 class="label">Abilities</h3>
           <div class="detail__wrap">
-            <div v-for="ability in abilities" :key="ability.ability.name">
+            <div
+              v-for="ability in pokemon.abilities"
+              :key="ability.ability.name"
+            >
               <div class="detail-tag">
                 {{ spaceCase(ability.ability.name) }}
               </div>
@@ -116,7 +117,6 @@ export default {
             />
           </div>
         </div>
-        
         <div class="evolution">
           <h3 class="label">Evolution</h3>
           <div class="evolution__wrap">
@@ -126,6 +126,7 @@ export default {
       </div>
     </div>
   </div>
+  <div v-else>LOADING</div>
 </template>
 
 <style scoped>

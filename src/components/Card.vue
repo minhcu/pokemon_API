@@ -1,11 +1,8 @@
 <template>
-  <router-link class="pokemon" :to="`${pokemon.id}`">
+  <div v-if="error">{{ error }}</div>
+  <router-link class="pokemon" :to="`${pokemon.id}`" v-else-if="pokemon.name">
     <div class="id">#{{ pokemon.id }}</div>
-    <div
-      class="image"
-      :style="`background-image:url('${image}')`"
-      v-if="pokemon.id"
-    ></div>
+    <div class="image" :style="`background-image:url('${image}')`"></div>
     <h3 class="title">
       {{ name }}
     </h3>
@@ -17,12 +14,13 @@
       />
     </div>
   </router-link>
+  <div v-else>LOADING</div>
 </template>
 
 <script>
 import LabelVue from "./Label.vue";
 import API_CONFIG from "../api";
-import { reactive, toRefs, computed } from "vue";
+import { reactive, ref, toRefs } from "vue";
 
 export default {
   name: "TheCard",
@@ -36,12 +34,16 @@ export default {
       pokemon: {},
       image: "",
     });
+    const pending = ref(true);
+    const error = ref(null);
     fetch(props.URL)
       .then((res) => res.json())
       .then((data) => {
         state.pokemon = data;
         state.image = API_CONFIG.pokeIMG(state.pokemon.id);
-      });
+      })
+      .catch((e) => (error.value = e))
+      .finally(() => (pending.value = false));
     return {
       ...toRefs(state),
     };
