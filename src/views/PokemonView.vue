@@ -2,92 +2,104 @@
 import LabelVue from "../components/Label.vue";
 import Tag from "../components/Tag.vue";
 import Evolution from "../components/Evolution.vue";
-import callAPI from "../composable";
+import { reactive, ref, toRefs } from "vue";
+import { useRoute } from "vue-router";
+import API_CONFIG from "../api";
+
 export default {
   components: { LabelVue, Tag, Evolution },
-  props: {
-    name: String,
-    URL: String,
-  },
-  data() {
-    return {
+  setup() {
+    const state = reactive({
+      image: "",
+      pokemon: {},
       species: {},
-      evolutionChain: {},
-      pokemonDetail: {},
-    };
-  },
-  computed: {
-    pokemonName() {
-      return this.$route.params.id;
-    },
-    abilities() {
-      return this.pokemonDetail.abilities.filter(
-        (ability) => ability.is_hidden === false
-      );
-    },
-    pkmIMG() {
-      return this.$store.getters.pkmIMG;
-    },
-  },
-  methods: {
-    spaceCase(string) {
-      return string.split("-").join(" ");
-    },
-    engEntry(entries) {
+      evolChain: {},
+    });
+    const pokemonID = useRoute().params.id;
+    state.image = API_CONFIG.pokeIMG(pokemonID);
+
+    const pending = ref(true);
+    const error = ref(null);
+    // Get pokemon detail
+    const pokemonDetail = API_CONFIG.pokemon(pokemonID);
+    fetch(pokemonDetail)
+      .then((res) => res.json())
+      .then((data) => {
+        state.pokemon = data;
+      })
+      .catch((e) => (error.value = e));
+
+    //Get pokemon species
+    const pokemonSpieces = API_CONFIG.species(pokemonID);
+    fetch(pokemonSpieces)
+      .then((res) => res.json())
+      .then((data) => {
+        state.species = data;
+        const pokemonEvolChain = state.species.evolution_chain.url;
+        fetch(pokemonEvolChain)
+          .then((res) => res.json())
+          .then((data) => {
+            state.evolChain = data;
+          });
+      })
+      .catch((e) => (error.value = e))
+      .finally(() => (pending.value = false));
+
+    // Get evolution chain
+
+    const engEntry = (entries) => {
       const entry = entries.find((entry) => entry.language.name === "en");
       return entry.flavor_text;
-    },
-  },
-  async created() {
-    // GET POKEMON DETAIL
-    const { data } = await callAPI(this.URL);
-    this.pokemonDetail = data.value;
-    // GET SPECIES
-    const { speciesData } = await callAPI(this.pokemon.species.url);
-    this.SPECIES = speciesData.value;
-    // GET EVOLUTION CHAIN
-    const { evolutionData } = await callAPI(this.SPECIES.evolution_chain.url);
-    this.EVOLUTION = evolutionData.value;
+    };
+    const spaceCase = (string) => string.split("-").join(" ");
+    return {
+      ...toRefs(state),
+      engEntry,
+      spaceCase,
+      pending,
+      error,
+    };
   },
 };
 </script>
 
 <template>
-  <div class="container" v-if="pokemonDetail.name">
+  <div v-if="error">{{ error }}</div>
+  <div class="container" v-if="pokemon.name">
     <router-link class="back-btn" to="/">&lt; Back</router-link>
     <div class="wrapper">
       <div class="col-full">
-        <div
-          class="image"
-          :style="`background-image:url('${pkmIMG(pokemonDetail.id)}')`"
-        ></div>
+        <div class="image" :style="`background-image:url('${image}')`"></div>
         <div class="labels">
           <LabelVue
-            v-for="typeItem in pokemonDetail.types"
+            v-for="typeItem in pokemon.types"
             :key="typeItem.type.name"
             :type="typeItem.type.name"
           />
         </div>
         <h2 class="name">
-          {{ pokemonDetail.name }}
+          {{ pokemon.name }}
         </h2>
-        <p v-if="SPECIES.flavor_text_entries" class="entry">
-          {{ engEntry(SPECIES.flavor_text_entries) }}
+        <p v-if="species.flavor_text_entries" class="entry">
+          {{ engEntry(species.flavor_text_entries) }}
         </p>
         <div class="detail__wrap">
           <div>
             <h3 class="label">Height</h3>
-            <div class="detail-tag">{{ pokemonDetail.height }}</div>
+            <div class="detail-tag">{{ pokemon.height }}</div>
           </div>
           <div>
             <h3 class="label">Weight</h3>
-            <div class="detail-tag">{{ pokemonDetail.weight }}</div>
+            <div class="detail-tag">{{ pokemon.weight }}</div>
           </div>
         </div>
         <div class="ability">
           <h3 class="label">Abilities</h3>
           <div class="detail__wrap">
-            <div v-for="ability in abilities" :key="ability.ability.name">
+            <div
+              v-for="ability in pokemon.abilities"
+              :key="ability.ability.name"
+            >
               <div class="detail-tag">
                 {{ spaceCase(ability.ability.name) }}
               </div>
@@ -98,7 +110,7 @@ export default {
           <h3 class="label">Stats</h3>
           <div class="detail__wrap">
             <Tag
-              v-for="stat in pokemonDetail.stats"
+              v-for="stat in pokemon.stats"
               :key="stat.base_stat"
               :label="stat.stat.name"
               :detail="stat.base_stat"
@@ -108,12 +120,13 @@ export default {
         <div class="evolution">
           <h3 class="label">Evolution</h3>
           <div class="evolution__wrap">
-            <Evolution v-if="EVOLUTION.chain" :chain="EVOLUTION.chain" />
+            <Evolution v-if="evolChain.chain" :chain="evolChain.chain" />
           </div>
         </div>
       </div>
     </div>
   </div>
+  <div v-else>LOADING</div>
 </template>
 
 <style scoped>

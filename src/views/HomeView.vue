@@ -1,50 +1,81 @@
 <script>
 import Card from "../components/Card.vue";
 import API_CONFIG from "../api";
-import callAPI from "../composable";
-
+import { reactive, toRefs, computed, ref } from "vue";
 export default {
-  data() {
+  name: "HomeView",
+  setup() {
+    const URL = API_CONFIG.pokeListURL(0, 898);
+    const state = reactive({
+      pokemons: [],
+      searchQuery: "",
+      limit: 30,
+      filteredPokemons: computed(() => handleSearch()),
+      limitedPokemons: computed(() => state.pokemons.slice(0, state.limit)),
+    });
+    const pending = ref(true);
+    const error = ref(null);
+    fetch(URL)
+      .then((res) => res.json())
+      .then((data) => {
+        state.pokemons = data.results;
+      });
+
+    function handleSearch() {
+      const query = state.searchQuery;
+      if (query) {
+        return state.pokemons.filter((pokemon) => pokemon.name.includes(query));
+      }
+    }
+    const handleLimit = function () {
+      state.limit += 30;
+      return;
+    };
     return {
-      pokemonList: [],
-      limit: 898,
+      ...toRefs(state),
+      handleLimit,
+      pending,
+      error,
     };
   },
   components: {
     Card,
   },
-  async created() {
-    const URL = API_CONFIG.BASE_URL + API_CONFIG.pokeListURL(0, this.limit);
-    const { data } = await callAPI(URL);
-    this.pokemonList = data.value.results;
-  },
 };
 </script>
 
 <template>
-  <div class="container">
-    <!-- <div class="wrapper">
+  <div v-if="error">
+    {{ error }}
+  </div>
+  <div class="container" v-else-if="pokemons.length > 0">
+    <div class="wrapper">
       <div class="search__wrap">
         <input
           class="search"
-          @input="handleSearch"
           type="text"
           v-model="searchQuery"
           placeholder="Search some Pokemon..."
         />
       </div>
-    </div> -->
-    <div class="wrapper">
-      <div class="col" v-for="pokemon in pokemonList" :key="pokemon.name">
+    </div>
+    <div class="wrapper" v-if="searchQuery">
+      <div class="col" v-for="pokemon in filteredPokemons" :key="pokemon.name">
         <Card :name="pokemon.name" :URL="pokemon.url" />
       </div>
     </div>
-    <!-- <div class="wrapper">
+    <div class="wrapper" v-else>
+      <div class="col" v-for="pokemon in limitedPokemons" :key="pokemon.name">
+        <Card :name="pokemon.name" :URL="pokemon.url" />
+      </div>
+    </div>
+    <div class="wrapper">
       <div class="col-full">
         <button class="btn" @click="handleLimit">Load More</button>
       </div>
-    </div> -->
+    </div>
   </div>
+  <div v-else class="loading">Loading</div>
 </template>
 
 <style>
