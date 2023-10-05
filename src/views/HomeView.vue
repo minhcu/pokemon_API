@@ -1,55 +1,44 @@
-<script>
-import Card from "../components/Card.vue";
-import API_CONFIG from "../api";
-import { reactive, toRefs, computed, ref } from "vue";
-export default {
-  name: "HomeView",
-  setup() {
-    const URL = API_CONFIG.pokeListURL(0, 898);
-    const state = reactive({
-      pokemons: [],
-      searchQuery: "",
-      limit: 30,
-      filteredPokemons: computed(() => handleSearch()),
-      limitedPokemons: computed(() => state.pokemons.slice(0, state.limit)),
-    });
-    const pending = ref(true);
-    const error = ref(null);
-    fetch(URL)
-      .then((res) => res.json())
-      .then((data) => {
-        state.pokemons = data.results;
-      });
+<script setup>
+import { computed, ref } from "vue";
+import { watchDebounced } from "@vueuse/core";
+import { useStore } from "vuex";
+import Card from "@/components/Card/Card.vue";
+import Loading from "@/components/Loading.vue";
+import API_CONFIG from "@/api";
+import useFetchAPI from "@/composable/fetchAPI";
 
-    function handleSearch() {
-      const query = state.searchQuery;
-      if (query) {
-        return state.pokemons.filter((pokemon) => pokemon.name.includes(query));
-      }
-    }
-    const handleLimit = function () {
-      state.limit += 30;
-      return;
-    };
-    return {
-      ...toRefs(state),
-      handleLimit,
-      pending,
-      error,
-    };
+const store = useStore();
+const { data, pending, fetchData } = useFetchAPI();
+const pokemons = computed(() => store.getters.pokeList.slice(0, limit.value));
+const searchQuery = ref(store.state.q);
+const URL = API_CONFIG.pokeListURL(0, 898);
+const limit = ref(36);
+
+fetchData(URL, store.state.pokemons.length).then(() => {
+  if (data.value) store.dispatch("setPokemons", data.value.results);
+});
+
+watchDebounced(
+  searchQuery,
+  () => {
+    store.dispatch("searchPokemon", searchQuery);
   },
-  components: {
-    Card,
-  },
+  { debounce: 500, maxWait: 500 }
+);
+
+const handleLimit = function () {
+  limit.value += limit.value;
+  return;
 };
 </script>
 
 <template>
-  <div v-if="error">
-    {{ error }}
-  </div>
-  <div class="container" v-else-if="pokemons.length > 0">
-    <div class="wrapper">
+  <Loading v-if="pending" />
+  <div class="container" v-if="!pending">
+    <div class="wrapper header-wrap">
+      <div class="heading">
+        <h2>Pokemon API</h2>
+      </div>
       <div class="search__wrap">
         <input
           class="search"
@@ -59,26 +48,32 @@ export default {
         />
       </div>
     </div>
-    <div class="wrapper" v-if="searchQuery">
-      <div class="col" v-for="pokemon in filteredPokemons" :key="pokemon.name">
-        <Card :name="pokemon.name" :URL="pokemon.url" />
-      </div>
-    </div>
-    <div class="wrapper" v-else>
-      <div class="col" v-for="pokemon in limitedPokemons" :key="pokemon.name">
-        <Card :name="pokemon.name" :URL="pokemon.url" />
-      </div>
-    </div>
     <div class="wrapper">
+      <div class="no-result" v-if="!pokemons.length">
+        No pokemon matched with "<span>{{ searchQuery }}</span
+        >"
+      </div>
+      <template v-else>
+        <div class="col" v-for="pokemon in pokemons" :key="pokemon.name">
+          <Card :name="pokemon.name" :URL="pokemon.url" />
+        </div>
+      </template>
+    </div>
+    <div class="wrapper" v-if="!searchQuery && pokemons.length !== 0">
       <div class="col-full">
         <button class="btn" @click="handleLimit">Load More</button>
       </div>
     </div>
   </div>
-  <div v-else class="loading">Loading</div>
 </template>
 
 <style>
+.no-result {
+  font-size: 24px;
+}
+.no-result span {
+  font-weight: 700;
+}
 .container {
   max-width: 1200px;
   margin: 50px auto;
@@ -86,15 +81,15 @@ export default {
 .wrapper {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-around;
 }
 .col {
   --width: 50%;
   --offset: 10px;
-  max-width: calc(var(--width) - var(--offset));
-  flex-basis: calc(var(--width) - var(--offset));
-  border-radius: 15px;
+  max-width: calc(var(--width) - calc(var(--offset)));
+  flex-basis: calc(var(--width) - calc(var(--offset)));
+  margin: 0 calc(var(--offset) / 2);
   margin-bottom: var(--offset);
+  border-radius: 15px;
   box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
   -webkit-transition: all 0.25s cubic-bezier(0.02, 0.01, 0.47, 1);
   transition: all 0.25s cubic-bezier(0.02, 0.01, 0.47, 1);
@@ -107,10 +102,19 @@ export default {
   transition: box-shadow 0.4s ease-out;
 }
 
+.header-wrap {
+  flex-direction: column;
+  align-items: center;
+}
+.heading {
+  font-size: 25px;
+  margin-bottom: 50px;
+}
 .search__wrap {
   max-width: 500px;
   width: 100%;
   margin: 0 15px;
+  margin-bottom: 50px;
 }
 
 .search {
@@ -118,22 +122,30 @@ export default {
   padding: 20px;
   border: none;
   border-radius: 30px;
-  outline: none;
+  outline: 1px solid #00000036;
   box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
-  margin-bottom: 50px;
   font-size: 16px;
+  transition: all 0.2s ease;
+}
+.search:focus {
+  outline: 1px solid #000000;
 }
 
+.col-full {
+  padding-top: 50px;
+  width: 100%;
+  text-align: center;
+}
 .btn {
   cursor: pointer;
-  height: 40px;
-  padding: 6px 15px;
-  margin: 80px;
+  padding: 20px 25px;
   border: none;
   border-radius: 10px;
   font-size: 16px;
   color: #ffffff;
   background-color: #ff4d4f;
+  transition: all 0.25s cubic-bezier(0.02, 0.01, 0.47, 1);
+  -webkit-transition: all 0.25s cubic-bezier(0.02, 0.01, 0.47, 1);
 }
 .btn:hover {
   background-color: #ff7875;

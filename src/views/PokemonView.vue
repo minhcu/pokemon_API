@@ -1,71 +1,46 @@
-<script>
-import LabelVue from "../components/Label.vue";
-import Tag from "../components/Tag.vue";
-import Evolution from "../components/Evolution.vue";
-import { reactive, ref, toRefs } from "vue";
+<script setup>
+import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
-import API_CONFIG from "../api";
+import { useStore } from "vuex";
+import useFetchAPI from "@/composable/fetchAPI";
+import API_CONFIG from "@/api";
+import Tag from "@/components/Tag.vue";
+import LabelVue from "@/components/Label.vue";
+import Evolution from "@/components/Evolution.vue";
+import Loading from "@/components/Loading.vue";
 
-export default {
-  components: { LabelVue, Tag, Evolution },
-  setup() {
-    const state = reactive({
-      image: "",
-      pokemon: {},
-      species: {},
-      evolChain: {},
-    });
-    const pokemonID = useRoute().params.id;
-    state.image = API_CONFIG.pokeIMG(pokemonID);
+const store = useStore();
+const name = useRoute().params.id;
+const pokemon = computed(() => store.getters.pokeDetail(name));
+const image = computed(() => API_CONFIG.pokeIMG(pokemon.value.id));
+const species = computed(() => store.getters.pokeSpecies(name));
+const evolChain = computed(() => store.getters.pokeChain(name));
+const pending = ref(true);
 
-    const pending = ref(true);
-    const error = ref(null);
-    // Get pokemon detail
-    const pokemonDetail = API_CONFIG.pokemon(pokemonID);
-    fetch(pokemonDetail)
-      .then((res) => res.json())
-      .then((data) => {
-        state.pokemon = data;
-      })
-      .catch((e) => (error.value = e));
+const { data, fetchData } = useFetchAPI();
+fetchData(API_CONFIG.pokemon(name), pokemon.value).then(() => {
+  if (!pokemon.value) store.dispatch("setPokemon", data.value);
+});
+fetchData(API_CONFIG.species(name), species.value).then(() => {
+  if (!species.value) store.dispatch("setSpecies", data.value);
+  fetchData(species.value.evolution_chain.url)
+    .then(() => {
+      if (!evolChain.value)
+        store.dispatch("setChain", { ...data.value, name: species.value.name });
+    })
+    .then(() => (pending.value = false));
+});
 
-    //Get pokemon species
-    const pokemonSpieces = API_CONFIG.species(pokemonID);
-    fetch(pokemonSpieces)
-      .then((res) => res.json())
-      .then((data) => {
-        state.species = data;
-        const pokemonEvolChain = state.species.evolution_chain.url;
-        fetch(pokemonEvolChain)
-          .then((res) => res.json())
-          .then((data) => {
-            state.evolChain = data;
-          });
-      })
-      .catch((e) => (error.value = e))
-      .finally(() => (pending.value = false));
-
-    // Get evolution chain
-
-    const engEntry = (entries) => {
-      const entry = entries.find((entry) => entry.language.name === "en");
-      return entry.flavor_text;
-    };
-    const spaceCase = (string) => string.split("-").join(" ");
-    return {
-      ...toRefs(state),
-      engEntry,
-      spaceCase,
-      pending,
-      error,
-    };
-  },
+const engEntry = (entries) => {
+  const entry = entries.find((entry) => entry.language.name === "en");
+  return entry.flavor_text;
 };
+const spaceCase = (string) => string.split("-").join(" ");
 </script>
 
 <template>
-  <div v-if="error">{{ error }}</div>
-  <div class="container" v-if="pokemon.name">
+  <Loading v-if="pending" />
+  <div class="container" v-else>
     <router-link class="back-btn" to="/">&lt; Back</router-link>
     <div class="wrapper">
       <div class="col-full">
@@ -120,13 +95,12 @@ export default {
         <div class="evolution">
           <h3 class="label">Evolution</h3>
           <div class="evolution__wrap">
-            <Evolution v-if="evolChain.chain" :chain="evolChain.chain" />
+            <Evolution v-if="evolChain" :chain="evolChain.chain" />
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div v-else>LOADING</div>
 </template>
 
 <style scoped>
@@ -143,7 +117,7 @@ export default {
 .col-full {
   max-width: 500px;
   width: 100%;
-  margin: 0px 10px;
+  margin: auto;
 }
 .col-full > * {
   width: 100%;
@@ -155,6 +129,7 @@ export default {
   background-size: cover;
 }
 .name {
+  white-space: nowrap;
   font-weight: 700;
   text-align: center;
   text-transform: capitalize;

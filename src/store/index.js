@@ -1,40 +1,64 @@
 import { createStore } from "vuex";
+// import API_CONFIG from "@/api";
 
 const store = createStore({
   state: {
-    API: {
-      BASE_URL: "https://pokeapi.co/api/v2/pokemon/",
-      SPECIES: "pokemon-species/",
-      suffix: "?limit=898",
-      img: (id) =>
-        `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
-      gif: (id) =>
-        `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${id}.gif`,
-    },
     pokemons: [],
+    pokemon: {},
+    chain: {},
+    q: "",
   },
   mutations: {
-    setPokemon(state, pokemons) {
-      state.pokemons = [...state.pokemons, ...pokemons];
+    SET_POKEMONS(state, pokemons) {
+      state.pokemons = pokemons;
+    },
+    SET_POKEMON(state, pokemon) {
+      state.pokemon[pokemon.name] = {
+        ...state.pokemon[pokemon.name],
+        detail: pokemon,
+      };
+    },
+    SET_SPECIES(state, species) {
+      state.pokemon[species.name] = { ...state.pokemon[species.name], species };
+    },
+    SET_CHAIN(state, chain) {
+      state.pokemon[chain.name] = { ...state.pokemon[chain.name], chain };
+    },
+    SET_QUERY(state, q) {
+      state.q = q;
     },
   },
   actions: {
-    getPokemon({ commit }, pokemons) {
-      commit("setPokemon", pokemons);
+    setPokemons({ commit }, data) {
+      commit("SET_POKEMONS", data);
+    },
+    setPokemon({ commit }, data) {
+      commit("SET_POKEMON", data);
+    },
+    setSpecies({ commit }, data) {
+      commit("SET_SPECIES", data);
+    },
+    setChain({ commit }, data) {
+      commit("SET_CHAIN", data);
+    },
+    searchPokemon({ commit }, q) {
+      commit("SET_QUERY", q);
     },
   },
   getters: {
-    pokeAPI(state) {
-      return state.API;
+    pokeList: (state) =>
+      state.pokemons.filter((pokemon) => pokemon.name.includes(state.q)),
+    pokeDetail: (state) => (name) => {
+      if (state.pokemon[name]) return state.pokemon[name].detail;
+      else return null;
     },
-    pokeLIST(state) {
-      return state.pokemons;
+    pokeSpecies: (state) => (name) => {
+      if (state.pokemon[name]) return state.pokemon[name].species;
+      else return null;
     },
-    IsValid(state) {
-      return state.pokemons.length;
-    },
-    pkmIMG: (state) => {
-      return state.API.img;
+    pokeChain: (state) => (name) => {
+      if (state.pokemon[name]) return state.pokemon[name].chain;
+      else return null;
     },
   },
 });

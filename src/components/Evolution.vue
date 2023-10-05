@@ -1,46 +1,26 @@
-<script>
-export default {
-  name: "EvolutionVue",
-  props: {
-    chain: Object,
-  },
-  methods: {
-    removeHttp: (url) => {
-      return url.replace(/^https?:\/\//, "");
-    },
-    pkmIMG(ID) {
-      return this.$store.getters.pkmIMG(ID);
-    },
-  },
-  computed: {
-    hasChild() {
-      const { evolves_to } = this.chain;
-      return evolves_to.length > 0;
-    },
-    ID() {
-      const URL = this.chain.species.url;
-      return this.removeHttp(URL).split("/")[4];
-    },
-  },
-};
+<!-- eslint-disable vue/multi-word-component-names -->
+<script setup>
+import API_CONFIG from "@/api";
+
+const props = defineProps({
+  chain: Object,
+});
+const image = API_CONFIG.pokeIMG(props.chain.species.url.split("/")[6]);
+const hasChild = props.chain.evolves_to.length > 0;
 </script>
 
 <template>
-  <!-- Single Evolution -->
+  <!-- Evolution -->
   <div class="evolution">
     <div class="form">
       <h4 class="name">{{ chain.species.name }}</h4>
-      <img :src="pkmIMG(this.ID)" :alt="chain.species.name" />
-    </div>
-    <div class="divider" v-if="hasChild">></div>
-    <div v-if="hasChild">
-      <Evolution
-        v-for="chain in chain.evolves_to"
-        :key="chain"
-        :chain="chain"
-      />
+      <img :src="image" :alt="chain.species.name" />
     </div>
   </div>
+  <template v-if="hasChild">
+    <div class="divider">></div>
+    <Evolution v-for="chain in chain.evolves_to" :key="chain" :chain="chain" />
+  </template>
 </template>
 
 <style scoped>
@@ -62,6 +42,7 @@ export default {
   align-items: center;
 }
 .name {
+  white-space: nowrap;
   font-weight: 600;
   text-align: center;
   text-transform: capitalize;
